@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="鈣質記錄">
+<title>每日鈣質記錄</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "PingFang TC", "Helvetica Neue", sans-serif;
+    background: #eef5fb;
+    color: #1f3347;
+    padding-bottom: calc(160px + env(safe-area-inset-bottom));
+  }
+  header {
+    background: linear-gradient(180deg, #bfe0f7, #9ccdee);
+    text-align: center;
+    padding: 16px 10px 12px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.3;
+  }
+  header h1 span {
+    color: #1864ab;
+    font-size: 32px;
+  }
+  header .date {
+    margin-top: 4px;
+    font-size: 15px;
+    color: #2b4a66;
+    font-weight: 600;
+  }
+  .container { padding: 14px; }
+
+  /* Category heading */
+  .category {
+    font-size: 17px;
+    font-weight: 800;
+    color: #1864ab;
+    margin: 18px 4px 8px;
+    padding-left: 10px;
+    border-left: 5px solid #1864ab;
+  }
+  .category:first-child { margin-top: 4px; }
+
+  /* Food cards */
+  .food-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .food-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 14px 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    border: 2px solid transparent;
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .food-row.eaten {
+    background: #e9f8ec;
+    border-color: #69db7c;
+  }
+  .food-info {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .food-name {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .food-meta {
+    font-size: 16px;
+    color: #4a6a88;
+    margin-top: 4px;
+  }
+
+  /* Fraction display e.g. 1/3 */
+  .frac {
+    display: inline-block;
+    font-weight: 800;
+    font-size: 17px;
+    line-height: 1;
+    vertical-align: -1px;
+    color: #1f3347;
+  }
+  .frac sup, .frac sub {
+    font-size: 70%;
+    line-height: 1;
+  }
+  .frac sup { vertical-align: 0.55em; }
+  .frac sub { vertical-align: -0.35em; }
+
+  /* Stepper */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .step-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: #4a7ba6;
+    color: #fff;
+    font-size: 28px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .step-btn.plus { background: #1864ab; }
+  .step-btn:disabled { opacity: 0.3; }
+  .step-btn:active { transform: scale(0.92); }
+  .step-value {
+    min-width: 34px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  .calcium-result {
+    font-size: 17px;
+    font-weight: 800;
+    color: #1864ab;
+    min-width: 64px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .reset-btn {
+    display: block;
+    margin: 22px auto 4px;
+    padding: 12px 26px;
+    background: #4a7ba6;
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .reset-btn:active { transform: scale(0.96); }
+
+  /* Footer with progress bar */
+  footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #d6ebfa;
+    border-top: 2px solid #74b3e0;
+    padding: 14px 18px calc(14px + env(safe-area-inset-bottom)) 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 -3px 8px rgba(0,0,0,0.15);
+  }
+  .progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .progress-label .label-text {
+    font-size: clamp(15px, 4vw, 19px);
+    font-weight: 700;
+  }
+  .progress-label .total-text {
+    font-size: clamp(21px, 6vw, 28px);
+    font-weight: 800;
+  }
+  .progress-container {
+    width: 100%;
+    height: 20px;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #74b3e0;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 12px;
+    transition: width 0.35s ease, background 0.35s ease;
+  }
+  .progress-bar.incomplete {
+    background: linear-gradient(90deg, #ff8787, #e8590c);
+  }
+  .progress-bar.complete {
+    background: linear-gradient(90deg, #69db7c, #2b8a3e);
+  }
+  .status {
+    text-align: center;
+    font-size: clamp(17px, 4.8vw, 22px);
+    font-weight: 800;
+  }
+  .status.incomplete { color: #c92a2a; }
+  .status.complete { color: #2b8a3e; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>每日攝取最少 <span>1000</span> 毫克鈣</h1>
+  <div class="date" id="dateDisplay"></div>
+</header>
+
+<div class="container">
+  <div id="foodTableBody">
+    <!-- rows injected by JS -->
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">重設所有數值</button>
+</div>
+
+<footer>
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span class="label-text">總鈣質攝取</span>
+      <span class="total-text" id="totalDisplay">0 / 1000 毫克</span>
+    </div>
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+  <div class="status" id="statusDisplay"></div>
+</footer>
+
+<script>
+  // 分數顯示工具：frac(1,3) 會顯示成 ¹⁄₃
+  const frac = (a, b) => `<span class="frac"><sup>${a}</sup>⁄<sub>${b}</sub></span>`;
+
+  const foods = [
+    // 蔬菜
+    { cat: "🥬 蔬菜",     name: "菜芯",              portion: frac(1,3) + " 磅", calcium: 200 },
+    { cat: "🥬 蔬菜",     name: "白菜",              portion: frac(1,3) + " 磅", calcium: 150 },
+    { cat: "🥬 蔬菜",     name: "唐生菜",            portion: frac(1,3) + " 磅", calcium: 100 },
+    { cat: "🥬 蔬菜",     name: "芥蘭",              portion: frac(1,3) + " 磅", calcium: 250 },
+    { cat: "🥬 蔬菜",     name: "黑木耳🍄",          portion: "20 克",            calcium: 140 },
+    // 肉類海鮮
+    { cat: "🐟 魚類海鮮", name: "魚🐟",              portion: "100 克",           calcium: 100 },
+    { cat: "🐟 魚類海鮮", name: "櫻花蝦🦐",          portion: "10 克",            calcium: 280 },
+    // 果仁水果
+    { cat: "🍊 果仁水果", name: "杏仁🌰",            portion: "28 克",            calcium: 100 },
+    { cat: "🍊 果仁水果", name: "橙🍊",              portion: "1 個（中）",       calcium: 60 },
+    { cat: "🍊 果仁水果", name: "木瓜🍈",            portion: "300 克",           calcium: 75 },
+    // 奶類
+    { cat: "🥛 奶類",     name: "維記高鈣脫脂奶🥛",   portion: "1 盒",             calcium: 380 },
+    { cat: "🥛 奶類",     name: "十字牌高鈣脫脂奶🥛", portion: "1 盒",             calcium: 280 },
+    { cat: "🥛 奶類",     name: "乳酪🥣",            portion: "1 盒",             calcium: 200 }
+  ];
+
+  const STORAGE_KEY = "calciumTrackerData";
+  const DAILY_TARGET = 1000;
+
+  function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+  }
+
+  function showDate() {
+    const d = new Date();
+    const weekdays = ["日","一","二","三","四","五","六"];
+    document.getElementById('dateDisplay').textContent =
+      `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（星期${weekdays[d.getDay()]}）`;
+  }
+
+  // 讀取已儲存數值；如果唔係今日嘅紀錄就自動清零
+  function loadSavedValues() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!saved || saved.date !== todayKey()) return {};
+      return saved.values || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveValues() {
+    const values = {};
+    foods.forEach((f, i) => {
+      values[i] = parseInt(document.getElementById('value-' + i).dataset.val) || 0;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), values }));
+  }
+
+  function renderTable() {
+    const saved = loadSavedValues();
+    const list = document.getElementById('foodTableBody');
+    list.innerHTML = "";
+
+    let currentCat = null;
+    let currentList = null;
+
+    foods.forEach((food, i) => {
+      if (food.cat !== currentCat) {
+        currentCat = food.cat;
+        const h = document.createElement('div');
+        h.className = 'category';
+        h.textContent = food.cat;
+        list.appendChild(h);
+        currentList = document.createElement('div');
+        currentList.className = 'food-list';
+        list.appendChild(currentList);
+      }
+
+      const savedVal = saved[i] || 0;
+      const row = document.createElement('div');
+      row.className = 'food-row' + (savedVal > 0 ? ' eaten' : '');
+      row.id = 'row-' + i;
+      row.innerHTML = `
+        <div class="food-info">
+          <div class="food-name">${food.name}</div>
+          <div class="food-meta">${food.portion}　${food.calcium} 毫克</div>
+        </div>
+        <div class="stepper">
+          <button class="step-btn minus" id="minus-${i}" onclick="changeValue(${i}, -1)" ${savedVal <= 0 ? 'disabled' : ''}>−</button>
+          <span class="step-value" id="value-${i}" data-val="${savedVal}">${savedVal}</span>
+          <button class="step-btn plus" onclick="changeValue(${i}, 1)">+</button>
+        </div>
+        <div class="calcium-result" id="result-${i}">${food.calcium * savedVal} 毫克</div>
+      `;
+      currentList.appendChild(row);
+    });
+    updateTotal();
+  }
+
+  function changeValue(i, delta) {
+    const valueSpan = document.getElementById('value-' + i);
+    let val = parseInt(valueSpan.dataset.val) || 0;
+    val = Math.max(0, val + delta);
+    valueSpan.dataset.val = val;
+    valueSpan.textContent = val;
+
+    document.getElementById('result-' + i).textContent = (foods[i].calcium * val) + ' 毫克';
+    document.getElementById('minus-' + i).disabled = val <= 0;
+    document.getElementById('row-' + i).classList.toggle('eaten', val > 0);
+
+    saveValues();
+    updateTotal();
+  }
+
+  function updateTotal() {
+    let total = 0;
+    foods.forEach((food, i) => {
+      const val = parseInt(document.getElementById('value-' + i).dataset.val) || 0;
+      total += food.calcium * val;
+    });
+
+    const totalDisplay = document.getElementById('totalDisplay');
+    const statusDisplay = document.getElementById('statusDisplay');
+    const progressBar = document.getElementById('progressBar');
+
+    const percent = Math.min((total / DAILY_TARGET) * 100, 100);
+    progressBar.style.width = percent + '%';
+    totalDisplay.textContent = `${total} / ${DAILY_TARGET} 毫克`;
+
+    if (total < DAILY_TARGET) {
+      progressBar.classList.remove('complete');
+      progressBar.classList.add('incomplete');
+      statusDisplay.classList.remove('complete');
+      statusDisplay.classList.add('incomplete');
+      statusDisplay.textContent = `尚欠 ${DAILY_TARGET - total} 毫克`;
+    } else {
+      progressBar.classList.remove('incomplete');
+      progressBar.classList.add('complete');
+      statusDisplay.classList.remove('incomplete');
+      statusDisplay.classList.add('complete');
+      statusDisplay.textContent = "🎉🎉🎉 成功!!! 🎉🎉🎉";
+    }
+  }
+
+  function resetAll() {
+    if (confirm("確定要重設所有數值嗎？")) {
+      localStorage.removeItem(STORAGE_KEY);
+      renderTable();
+    }
+  }
+
+  showDate();
+  renderTable();
+</script>
+
+</body>
+</html>
